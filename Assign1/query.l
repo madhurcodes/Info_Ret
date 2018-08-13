@@ -26,6 +26,9 @@
 "N:" {
 	return NAMED;
 	}
+"*" {
+	return AST;
+	}
 [a-zA-Z0-9]+ {
 	char* tok = strdup(yytext);	
 	yylval.query = tok;
@@ -34,14 +37,9 @@
 
 [ \t\r]+ {}
 \n 	{
-		cout<<"EOL Tokenized"<<endl;
+		// cout<<"EOL Tokenized"<<endl;
 		return EOL;
 	}
-
-<<EOF>>    {
-		 cout<<"EOF"<<endl;
-         return END_OF_FILE;
-         }
 
 .	{
 		SynErr = 1;
@@ -49,10 +47,10 @@
 		exit(-1);
 	}
 
+
 %%
 
 
 void yyerror(char* str){
 	fprintf(yyout, "Syn Err here - %s\n",str);
-
 }

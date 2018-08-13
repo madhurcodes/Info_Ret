@@ -165,6 +165,18 @@ posting_query* post_load(query_config* config, int offset, int named){
 posting_query* token_to_posting_list(char* tok, query_config* config, memory_data* dat, int named){
     string word(tok);
     // do stemming and stopword
+    
+    string command;
+    stringstream buffer;
+    buffer << "python3 process_query.py " << dat->stemming << " " << dat->stopword << " " << word;
+    command = buffer.str();
+    system(command.c_str());
+
+    ifstream pipe("my_pipe.txt");
+    stringstream read_buffer;
+    buffer << pipe.rdbuf();
+    word = read_buffer.str();
+
     posting_query* temp;
     if ( dat->dictionary.find(word) == dat->dictionary.end() ) {
         temp = new posting_query();

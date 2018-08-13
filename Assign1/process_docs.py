@@ -2,6 +2,7 @@ import numpy as np
 import nltk
 import sys
 import os
+import shutil
 
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem.porter import PorterStemmer
@@ -26,10 +27,13 @@ indexfile = sys.argv[6]
 
 t_dir = "./temp-docs"
 n_dir = "./temp-docs-named"
-if not os.path.exists(t_dir):
-    os.makedirs(t_dir)
-if not os.path.exists(n_dir):
-    os.makedirs(n_dir)
+if os.path.exists(t_dir):
+    shutil.rmtree(t_dir)
+if os.path.exists(n_dir):
+    shutil.rmtree(n_dir)
+
+os.makedirs(t_dir)
+os.makedirs(n_dir)
 
 for filename in os.listdir(directory):
     with open(directory+"/" + filename, 'r') as i_f, open(t_dir+"/"+filename,'w') as o_f, open(n_dir+"/"+filename,'w') as on_f:
