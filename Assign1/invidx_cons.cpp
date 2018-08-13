@@ -8,9 +8,9 @@ string named_entity_path   = "./temp-docs-named/";
 
 map<string, posting_creation *> dictionary;
 
-vector<string> doc_names; // docids and paraids start from 1
+vector<string> doc_names; // doc_ids and para_ids start from 1
 
-void parse_document(string filename, int docid){
+void parse_document(string filename, int doc_id){
     string filepath = cleaned_folder_path + filename;
     ifstream infile(filepath);
     string line;
@@ -24,29 +24,29 @@ void parse_document(string filename, int docid){
             if ( dictionary.find(word) == dictionary.end() ) {
                 posting_creation* temp = new posting_creation();
                 doc* tdoc = new doc();
-                tdoc->docid = docid;
-                tdoc->paraid.push_back(line_num);
-                tdoc->paracount.push_back(1);
+                tdoc->doc_id = doc_id;
+                tdoc->para_id.push_back(line_num);
+                tdoc->para_count.push_back(1);
                 temp->docs.push_back(tdoc);
                 dictionary[word] = temp;
             }
             else{
                 posting_creation* temp = dictionary[word];
-                if( (temp->docs.size() == 0) || (temp->docs[temp->docs.size()-1]->docid != docid) ){
+                if( (temp->docs.size() == 0) || (temp->docs[temp->docs.size()-1]->doc_id != doc_id) ){
                     doc* tdoc = new doc();
-                    tdoc->docid = docid;
-                    tdoc->paraid.push_back(line_num);
-                    tdoc->paracount.push_back(1);
+                    tdoc->doc_id = doc_id;
+                    tdoc->para_id.push_back(line_num);
+                    tdoc->para_count.push_back(1);
                     temp->docs.push_back(tdoc);
                 }
                 else{
                     doc* tdoc = temp->docs[temp->docs.size()-1];
-                    if( (tdoc->paraid.size() == 0) || (tdoc->paraid[tdoc->paraid.size()-1] != line_num)){
-                        tdoc->paraid.push_back(line_num);
-                        tdoc->paracount.push_back(1);
+                    if( (tdoc->para_id.size() == 0) || (tdoc->para_id[tdoc->para_id.size()-1] != line_num)){
+                        tdoc->para_id.push_back(line_num);
+                        tdoc->para_count.push_back(1);
                     }
                     else{
-                        tdoc->paracount[tdoc->paraid.size()-1] += 1;
+                        tdoc->para_count[tdoc->para_id.size()-1] += 1;
                     }
                 }
             }
@@ -54,9 +54,10 @@ void parse_document(string filename, int docid){
 
         line_num++;
     }
+    infile.close();
 }
 
-void parse_document_named(string filename, int docid){
+void parse_document_named(string filename, int doc_id){
     string filepath = named_entity_path + filename;
     ifstream infile(filepath);
     string line;
@@ -70,29 +71,29 @@ void parse_document_named(string filename, int docid){
             if ( dictionary.find(word) == dictionary.end() ) {
                 posting_creation* temp = new posting_creation();
                 doc* tdoc = new doc();
-                tdoc->docid = docid;
-                tdoc->paraid.push_back(line_num);
-                tdoc->paracount.push_back(1);
+                tdoc->doc_id = doc_id;
+                tdoc->para_id.push_back(line_num);
+                tdoc->para_count.push_back(1);
                 temp->named_docs.push_back(tdoc);
                 dictionary[word] = temp;
             }
             else{
                 posting_creation* temp = dictionary[word];
-                if( (temp->named_docs.size() == 0) || (temp->named_docs[temp->named_docs.size()-1]->docid != docid) ){
+                if( (temp->named_docs.size() == 0) || (temp->named_docs[temp->named_docs.size()-1]->doc_id != doc_id) ){
                     doc* tdoc = new doc();
-                    tdoc->docid = docid;
-                    tdoc->paraid.push_back(line_num);
-                    tdoc->paracount.push_back(1);
+                    tdoc->doc_id = doc_id;
+                    tdoc->para_id.push_back(line_num);
+                    tdoc->para_count.push_back(1);
                     temp->named_docs.push_back(tdoc);
                 }
                 else{
                     doc* tdoc = temp->named_docs[temp->named_docs.size()-1];
-                    if( (tdoc->paraid.size() == 0) || (tdoc->paraid[tdoc->paraid.size()-1] != line_num)){
-                        tdoc->paraid.push_back(line_num);
-                        tdoc->paracount.push_back(1);
+                    if( (tdoc->para_id.size() == 0) || (tdoc->para_id[tdoc->para_id.size()-1] != line_num)){
+                        tdoc->para_id.push_back(line_num);
+                        tdoc->para_count.push_back(1);
                     }
                     else{
-                        tdoc->paracount[tdoc->paraid.size()-1] += 1;
+                        tdoc->para_count[tdoc->para_id.size()-1] += 1;
                     }
                 }
             }
@@ -100,32 +101,29 @@ void parse_document_named(string filename, int docid){
 
         line_num++;
     }
+    infile.close();
 }
 
-void parseDirectory(const char *dir_name)
-{
+void parse_directory(const char *dir_name){
 	DIR *dir;
 	struct dirent *ent;
-    int docid = 1;
+    int doc_id = 1;
 	if ((dir = opendir (dir_name)) != NULL) {
-		while ((ent = readdir (dir)) != NULL)
-		{
+	    while ((ent = readdir (dir)) != NULL){
 			if(strlen(ent->d_name)==1 && ent->d_name[0]=='.')
 				continue;
 			if(strlen(ent->d_name)==2 && ent->d_name[0]=='.' && ent->d_name[1]=='.')
 				continue;
 			string str(ent->d_name);
 			// cout<<ent->d_name<<endl;
-			parse_document(str, docid);
-			parse_document_named(str, docid);  
+			parse_document(str, doc_id);
+			parse_document_named(str, doc_id);  
             doc_names.push_back(str);          
-            docid++;
+            doc_id++;
 		}
 		closedir (dir);
 	} 
-	else
-	{
-		perror ("");
+	else{
 		exit(0);
 	}
 }
@@ -192,14 +190,16 @@ void write_files(string ind){
     fwrite(&wr,4,1,out_index);
     wr = stopword;
     fwrite(&wr,4,1,out_index);
-    int temp_docid = 1;
+    wr = doc_names.size();
+    fwrite(&wr,4,1,out_index);
+    int temp_doc_id = 1;
     for(i=0;i<doc_names.size();i++){
-        wr = temp_docid;
+        wr = temp_doc_id;
         fwrite(&wr,4,1,out_index);
         wr = doc_names[i].size();
         fwrite(&wr,4,1,out_index);
         fwrite(doc_names[i].c_str(),wr,1,out_index);
-        temp_docid++;
+        temp_doc_id++;
     }
     vector<int> offs; // starts from 1 (termid)
     offs.push_back(-1); //filler
@@ -219,14 +219,14 @@ void write_files(string ind){
         wr = temp->docs.size();
         fwrite(&wr,4,1,out_index);
         for(i=0;i<temp->docs.size();i++){
-            wr = temp->docs[i]->docid;
+            wr = temp->docs[i]->doc_id;
             fwrite(&wr,4,1,out_index);
-            wr = temp->docs[i]->paraid.size();
+            wr = temp->docs[i]->para_id.size();
             fwrite(&wr,4,1,out_index);
-            for(j=0;j<temp->docs[i]->paraid.size();j++){
-                wr = temp->docs[i]->paracount[j];
+            for(j=0;j<temp->docs[i]->para_id.size();j++){
+                wr = temp->docs[i]->para_count[j];
                 fwrite(&wr,4,1,out_index);
-                wr = temp->docs[i]->paraid[j];
+                wr = temp->docs[i]->para_id[j];
                 fwrite(&wr,4,1,out_index);
             }
         }
@@ -240,14 +240,14 @@ void write_files(string ind){
         wr = temp->named_docs.size();
         fwrite(&wr,4,1,out_index);
         for(i=0;i<temp->named_docs.size();i++){
-            wr = temp->named_docs[i]->docid;
+            wr = temp->named_docs[i]->doc_id;
             fwrite(&wr,4,1,out_index);
-            wr = temp->named_docs[i]->paraid.size();
+            wr = temp->named_docs[i]->para_id.size();
             fwrite(&wr,4,1,out_index);
-            for(j=0;j<temp->named_docs[i]->paraid.size();j++){
-                wr = temp->named_docs[i]->paracount[j];
+            for(j=0;j<temp->named_docs[i]->para_id.size();j++){
+                wr = temp->named_docs[i]->para_count[j];
                 fwrite(&wr,4,1,out_index);
-                wr = temp->named_docs[i]->paraid[j];
+                wr = temp->named_docs[i]->para_id[j];
                 fwrite(&wr,4,1,out_index);
             }
         }
@@ -268,8 +268,8 @@ void write_files(string ind){
     }
     out_dict.close();
 }
-int main(int argc, char **argv)
-{
+
+int main(int argc, char **argv){
     process_construction_args(argc, argv);
     int i=0,j=0;
     string directory = argv[argc-2];
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
     command = buffer.str();
     system(command.c_str());
     // cout<<"Stemming is "<<stemming<<" stopword is "<<stopword<<" directory is "<<directory<<" and indexfile is "<<indexfile<<endl;
-    parseDirectory(directory.c_str());
+    parse_directory(directory.c_str());
     write_files(indexfile);
     return 0;
 }

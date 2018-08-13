@@ -13,9 +13,9 @@
 using namespace std;
 
 typedef struct {
-    int docid;
-    vector<int> paraid;
-    vector<int> paracount;
+    int doc_id;
+    vector<int> para_id;
+    vector<int> para_count;
 } doc;
 
 typedef struct {
@@ -35,3 +35,9 @@ typedef struct {
     string dict_file;
 } query_config;
 
+typedef struct {
+    map<string, pair<int,int> > dictionary; // (df,offset)
+    int stemming = -1;
+    int stopword = -1;
+    vector<string> doc_names; // docids and paraids start from 1
+} memory_data;
