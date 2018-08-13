@@ -1,99 +1,97 @@
 %{
-	#include <stdio.h>
-	#include <stdlib.h>
-	#include <string.h>
-	#include "bignumcalc_prog.h"
+	#include "query_functions.cpp"
 	int MAX_LEN;
-	int SynErr;
+	FILE *q_out;
+	memory_data* dat;
+	query_config* config;
+	extern FILE* yyin;
+	extern int yylex ();
+	extern void yyerror ( char *);
 %}
 
-%union {
-	int int_val;
-	float float_val;
-	char* stri;
-	bigint* big_i;
+%code requires {
+    #include "post.h"
 }
 
-%type<big_i> unit
-%type<big_i> mult_div expression;
-%token<stri> NUMBER
-%token AND OR COMMA
+%union {
+	char* query;
+	posting_query* query_list;
+}
+
+%type<query_list> unit
+%type<query_list> expression;
+%token<query> TOKEN
+%token END_OF_FILE
 %token OP CP
 %token EOL
 
+%left AND OR
+%right NAMED
+
 %%
 
-calcexpression:
-	|	calcexpression expression EOL {
-                            reduce(MAX_LEN/2,$2);
-							print_bigint($2);
-							del_big($2);
-						} ;
+full:
+	| fullexpression full {}
+	| END_OF_FILE {
+		cout<<"DONE"<<endl;
+		};
 
-expression: mult_div
-	|	expression ADD mult_div {
-			$$ = add($1,$3,1);
-			del_big($1);
-			del_big($3);
+fullexpression: expression EOL {
+				write_output($1, dat, config, q_out);
+				fputs("\n",q_out);
+				fputs("\n",q_out);
+				cout<<"--"<<endl;				
+				delete($1);
+			};
+expression: unit {
+			$$ = $1;
+			cout<<"-I-"<<endl;
 		}
-	|	expression SUB mult_div {
-			$$ = sub($1,$3,1);
-			del_big($1);
-			del_big($3);
+	|	expression AND expression {
+			$$ = post_intersection($1,$3);
+			cout<<"-AD-"<<endl;
+			delete($1);
+			delete($3);
 		}
+	|	expression OR expression {
+			$$ = post_union($1,$3);
+			cout<<"-OR-"<<endl;
+			delete($1);
+			delete($3);
+		}
+	|	OP expression CP {$$ = $2;
+						cout<<"-P-"<<endl;}
 	;
 
-mult_div: unit
-	|	mult_div MUL unit {
-			$$ = mult($1,$3,1);
-			del_big($1);
-			del_big($3);
-		}
-	|	mult_div DIV unit {
-			$$ = div_big($1,$3);
-			del_big($1);
-			del_big($3);
-		}
-	;
 
-unit: NUMBER {
-			$$ = conv_str_to_bigint(0,$1);
+unit: TOKEN {
+			$$ = token_to_posting_list($1, config, dat, 0);
+			cout<<"-T-"<<endl;
 			free($1);
 		}
 
-	| SUB NUMBER {
-			$$ = conv_str_to_bigint(1,$2);
+	| NAMED TOKEN {
+			$$ = token_to_posting_list($2, config, dat, 1);
+			cout<<"-N-"<<endl;
 			free($2);
-		}
-	| OP expression CP {$$ = $2;}
-	| SQRT unit {
-			$$ = big_sqrt($2);
-			del_big($2);
-		}
-	| LOG unit {
-			$$ = big_log($2);
-			del_big($2);
-		}
-	| POW OP unit COMMA unit CP {
-			$$ = power($3,$5);
-			del_big($3);
-			del_big($5);
 		}
 	;
 
 %%
 
-main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
-	freopen(argv[1],"r",stdin);
-	freopen(argv[2],"w",stdout);
-	scanf("%d ",&MAX_LEN);
-	MAX_LEN = 2*MAX_LEN;
-	yyparse();
-}
+	config = process_query_args(argc, argv);
+	FILE *q_in = fopen(config->query_file.c_str(), "r");
+	q_out = fopen(config->out_file.c_str(), "w");
+	yyin = q_in;
 
-yyerror(char *s)
-{
-	SynErr = 1;
-	throw_err();
+	dat = load_mem_data(config);
+
+	yyparse();
+	fclose(q_in);
+	fclose(q_out);
+	cout<<"\nClosed files"<<endl;
+	return 0;
+
 }

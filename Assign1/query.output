@@ -1,0 +1,225 @@
+Grammar
+
+    0 $accept: full $end
+
+    1 full: %empty
+    2     | fullexpression full
+    3     | END_OF_FILE
+
+    4 fullexpression: expression EOL
+
+    5 expression: unit
+    6           | expression AND expression
+    7           | expression OR expression
+    8           | OP expression CP
+
+    9 unit: TOKEN
+   10     | NAMED TOKEN
+
+
+Terminals, with rules where they appear
+
+$end (0) 0
+error (256)
+TOKEN (258) 9 10
+END_OF_FILE (259) 3
+OP (260) 8
+CP (261) 8
+EOL (262) 4
+AND (263) 6
+OR (264) 7
+NAMED (265) 10
+
+
+Nonterminals, with rules where they appear
+
+$accept (11)
+    on left: 0
+full (12)
+    on left: 1 2 3, on right: 0 2
+fullexpression (13)
+    on left: 4, on right: 2
+expression (14)
+    on left: 5 6 7 8, on right: 4 6 7 8
+unit (15)
+    on left: 9 10, on right: 5
+
+
+State 0
+
+    0 $accept: . full $end
+
+    TOKEN        shift, and go to state 1
+    END_OF_FILE  shift, and go to state 2
+    OP           shift, and go to state 3
+    NAMED        shift, and go to state 4
+
+    $default  reduce using rule 1 (full)
+
+    full            go to state 5
+    fullexpression  go to state 6
+    expression      go to state 7
+    unit            go to state 8
+
+
+State 1
+
+    9 unit: TOKEN .
+
+    $default  reduce using rule 9 (unit)
+
+
+State 2
+
+    3 full: END_OF_FILE .
+
+    $default  reduce using rule 3 (full)
+
+
+State 3
+
+    8 expression: OP . expression CP
+
+    TOKEN  shift, and go to state 1
+    OP     shift, and go to state 3
+    NAMED  shift, and go to state 4
+
+    expression  go to state 9
+    unit        go to state 8
+
+
+State 4
+
+   10 unit: NAMED . TOKEN
+
+    TOKEN  shift, and go to state 10
+
+
+State 5
+
+    0 $accept: full . $end
+
+    $end  shift, and go to state 11
+
+
+State 6
+
+    2 full: fullexpression . full
+
+    TOKEN        shift, and go to state 1
+    END_OF_FILE  shift, and go to state 2
+    OP           shift, and go to state 3
+    NAMED        shift, and go to state 4
+
+    $default  reduce using rule 1 (full)
+
+    full            go to state 12
+    fullexpression  go to state 6
+    expression      go to state 7
+    unit            go to state 8
+
+
+State 7
+
+    4 fullexpression: expression . EOL
+    6 expression: expression . AND expression
+    7           | expression . OR expression
+
+    EOL  shift, and go to state 13
+    AND  shift, and go to state 14
+    OR   shift, and go to state 15
+
+
+State 8
+
+    5 expression: unit .
+
+    $default  reduce using rule 5 (expression)
+
+
+State 9
+
+    6 expression: expression . AND expression
+    7           | expression . OR expression
+    8           | OP expression . CP
+
+    CP   shift, and go to state 16
+    AND  shift, and go to state 14
+    OR   shift, and go to state 15
+
+
+State 10
+
+   10 unit: NAMED TOKEN .
+
+    $default  reduce using rule 10 (unit)
+
+
+State 11
+
+    0 $accept: full $end .
+
+    $default  accept
+
+
+State 12
+
+    2 full: fullexpression full .
+
+    $default  reduce using rule 2 (full)
+
+
+State 13
+
+    4 fullexpression: expression EOL .
+
+    $default  reduce using rule 4 (fullexpression)
+
+
+State 14
+
+    6 expression: expression AND . expression
+
+    TOKEN  shift, and go to state 1
+    OP     shift, and go to state 3
+    NAMED  shift, and go to state 4
+
+    expression  go to state 17
+    unit        go to state 8
+
+
+State 15
+
+    7 expression: expression OR . expression
+
+    TOKEN  shift, and go to state 1
+    OP     shift, and go to state 3
+    NAMED  shift, and go to state 4
+
+    expression  go to state 18
+    unit        go to state 8
+
+
+State 16
+
+    8 expression: OP expression CP .
+
+    $default  reduce using rule 8 (expression)
+
+
+State 17
+
+    6 expression: expression . AND expression
+    6           | expression AND expression .
+    7           | expression . OR expression
+
+    $default  reduce using rule 6 (expression)
+
+
+State 18
+
+    6 expression: expression . AND expression
+    7           | expression . OR expression
+    7           | expression OR expression .
+
+    $default  reduce using rule 7 (expression)

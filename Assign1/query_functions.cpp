@@ -26,8 +26,6 @@ posting_query* post_union(posting_query* post_1, posting_query* post_2){
                     temp->para_count.push_back(post_2->docs[j]->para_count[l]);
                     l++;
                 }
-                k++;
-                l++;
             }
             while(k<post_1->docs[i]->para_id.size()){
                 temp->para_id.push_back(post_1->docs[i]->para_id[k]);
@@ -60,7 +58,7 @@ posting_query* post_union(posting_query* post_1, posting_query* post_2){
             }
             j++;
         }
-
+        result->docs.push_back(temp); // PB done in all three cases so doin at end
     }
     while(i<post_1->docs.size()){
         doc* temp = new doc();
@@ -70,6 +68,7 @@ posting_query* post_union(posting_query* post_1, posting_query* post_2){
             temp->para_id.push_back(post_1->docs[i]->para_id[k]);
             temp->para_count.push_back(post_1->docs[i]->para_count[k]);
         }
+        result->docs.push_back(temp);
         i++;
     }
     while(j<post_2->docs.size()){
@@ -80,6 +79,7 @@ posting_query* post_union(posting_query* post_1, posting_query* post_2){
             temp->para_id.push_back(post_2->docs[j]->para_id[k]);
             temp->para_count.push_back(post_2->docs[j]->para_count[k]);
         }
+        result->docs.push_back(temp);
         j++;
     }
     return result;   
@@ -101,26 +101,22 @@ posting_query* post_intersection(posting_query* post_1, posting_query* post_2){
                     k++;
                     l++;
                 }
-                else{
-                    if(post_1->docs[i]->para_id[k] < post_2->docs[j]->para_id[l]){
+                else if(post_1->docs[i]->para_id[k] < post_2->docs[j]->para_id[l]){
                         k++;
-                    }
-                    else{
+                }
+                else{
                         l++;
-                    }
                 }
             }
             result->docs.push_back(temp);
             i++;
             j++;
         }
-        else{
-            if(post_1->docs[i]->doc_id < post_2->docs[j]->doc_id){
+        else if(post_1->docs[i]->doc_id < post_2->docs[j]->doc_id){
                 i++;
-            }
-            else{
+        }
+        else{
                 j++;
-            }
         }
     }
     return result;
@@ -152,18 +148,32 @@ posting_query* post_load(query_config* config, int offset, int named){
         doc* temp = new doc();
         int doc_id, num_paras;
         fread(&doc_id,4,1,index);
-        doc->doc_id = doc_id;
+        temp->doc_id = doc_id;
         fread(&num_paras,4,1,index);
         for(j=0;j<num_paras;j++){
             int para_count, para_id;
             fread(&para_count,4,1,index);
             fread(&para_id,4,1,index);
-            doc->para_id.push_back(para_id);
-            doc->para_count.push_back(para_count);
+            temp->para_id.push_back(para_id);
+            temp->para_count.push_back(para_count);
         }
+        result->docs.push_back(temp);
     }
     fclose(index);
     return result;
+}
+posting_query* token_to_posting_list(char* tok, query_config* config, memory_data* dat, int named){
+    string word(tok);
+    // do stemming and stopword
+    posting_query* temp;
+    if ( dat->dictionary.find(word) == dat->dictionary.end() ) {
+        temp = new posting_query();
+    }
+    else{
+        int offset = dat->dictionary[word].second;
+        temp = post_load(config,offset,named);
+    }
+    return temp;
 }
 
 memory_data* load_mem_data(query_config* config){
@@ -209,6 +219,13 @@ memory_data* load_mem_data(query_config* config){
     return dat;
 }
 
+void write_output(posting_query* q, memory_data* dat, query_config* config, FILE* q_out){
+    int i,num_docs;
+    for(i=0;i<q->docs.size();i++){
+        string docname = dat->doc_names[q->docs[i]->doc_id];
+        fprintf(q_out, "%s %d\n",docname.c_str(),2);
+    }
+}
 
 void args_help(){
         cout <<

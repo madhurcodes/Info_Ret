@@ -1,12 +1,12 @@
 %{
-	#include "bignumcalc_prog.h"
-	#include "bignumcalc.tab.h"
-	#include <string.h>
-	#include <stdlib.h>
-
 	int SynErr;
-
+	#include "post.h"
+	#include "query.tab.h"
+	void yyerror ( char *);
+	int yyparse ( void );
 %}
+
+%option noyywrap
 
 %%
 "(" {
@@ -23,22 +23,36 @@
 "|" {
 		return OR;
 	}
-"," {
-		return COMMA;
+"N:" {
+	return NAMED;
 	}
-[0-9]+(\.[0-9]+)? {
-	char* numb = strdup(yytext);	
-	yylval.stri = numb;
-	return NUMBER;
+[a-zA-Z0-9]+ {
+	char* tok = strdup(yytext);	
+	yylval.query = tok;
+	return TOKEN;
 	}
 
 [ \t\r]+ {}
 \n 	{
+		cout<<"EOL Tokenized"<<endl;
 		return EOL;
 	}
+
+<<EOF>>    {
+		 cout<<"EOF"<<endl;
+         return END_OF_FILE;
+         }
+
 .	{
 		SynErr = 1;
-		throw_err();
+		printf("Lex error");
+		exit(-1);
 	}
 
-%%;
+%%
+
+
+void yyerror(char* str){
+	fprintf(yyout, "Syn Err here - %s\n",str);
+
+}
