@@ -7,6 +7,4 @@ search: query_functions.cpp invidx_cons.cpp query.l query.y
 	g++ -g invidx_cons.cpp -o invidx
 
 clean:
-	rm query.tab.c query.tab.h lex.yy.c query.tab.o lex.yy.o my_pipe.txt
-	rm boolsearch invidx
-	rm vecsearch
+	rm vecsearch *.idx *.dict query.tab.c query.tab.h lex.yy.c query.tab.o lex.yy.o my_pipe.txt boolsearch invidx

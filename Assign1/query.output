@@ -12,28 +12,27 @@ Grammar
     6           | expression OR expression
     7           | OP expression CP
 
-    8 mid_unit: low_unit
-    9         | mid_unit low_unit
+    8 mid_unit: unit
+    9         | mid_unit unit
 
-   10 low_unit: unit
-   11         | unit AST
-
-   12 unit: TOKEN
-   13     | NAMED TOKEN
+   10 unit: TOKEN
+   11     | NAMED TOKEN
+   12     | TOKEN AST
+   13     | NAMED TOKEN AST
 
 
 Terminals, with rules where they appear
 
 $end (0) 0
 error (256)
-TOKEN (258) 12 13
+TOKEN (258) 10 11 12 13
 OP (259) 7
 CP (260) 7
 EOL (261) 3
 AND (262) 5
 OR (263) 6
-AST (264) 11
-NAMED (265) 13
+AST (264) 12 13
+NAMED (265) 11 13
 
 
 Nonterminals, with rules where they appear
@@ -48,10 +47,8 @@ expression (14)
     on left: 4 5 6 7, on right: 3 5 6 7
 mid_unit (15)
     on left: 8 9, on right: 4 9
-low_unit (16)
-    on left: 10 11, on right: 8 9
-unit (17)
-    on left: 12 13, on right: 10 11
+unit (16)
+    on left: 10 11 12 13, on right: 8 9
 
 
 State 0
@@ -68,15 +65,17 @@ State 0
     fullexpression  go to state 5
     expression      go to state 6
     mid_unit        go to state 7
-    low_unit        go to state 8
-    unit            go to state 9
+    unit            go to state 8
 
 
 State 1
 
-   12 unit: TOKEN .
+   10 unit: TOKEN .
+   12     | TOKEN . AST
 
-    $default  reduce using rule 12 (unit)
+    AST  shift, and go to state 9
+
+    $default  reduce using rule 10 (unit)
 
 
 State 2
@@ -89,13 +88,13 @@ State 2
 
     expression  go to state 10
     mid_unit    go to state 7
-    low_unit    go to state 8
-    unit        go to state 9
+    unit        go to state 8
 
 
 State 3
 
-   13 unit: NAMED . TOKEN
+   11 unit: NAMED . TOKEN
+   13     | NAMED . TOKEN AST
 
     TOKEN  shift, and go to state 11
 
@@ -121,8 +120,7 @@ State 5
     fullexpression  go to state 5
     expression      go to state 6
     mid_unit        go to state 7
-    low_unit        go to state 8
-    unit            go to state 9
+    unit            go to state 8
 
 
 State 6
@@ -139,32 +137,28 @@ State 6
 State 7
 
     4 expression: mid_unit .
-    9 mid_unit: mid_unit . low_unit
+    9 mid_unit: mid_unit . unit
 
     TOKEN  shift, and go to state 1
     NAMED  shift, and go to state 3
 
     $default  reduce using rule 4 (expression)
 
-    low_unit  go to state 17
-    unit      go to state 9
+    unit  go to state 17
 
 
 State 8
 
-    8 mid_unit: low_unit .
+    8 mid_unit: unit .
 
     $default  reduce using rule 8 (mid_unit)
 
 
 State 9
 
-   10 low_unit: unit .
-   11         | unit . AST
+   12 unit: TOKEN AST .
 
-    AST  shift, and go to state 18
-
-    $default  reduce using rule 10 (low_unit)
+    $default  reduce using rule 12 (unit)
 
 
 State 10
@@ -173,16 +167,19 @@ State 10
     6           | expression . OR expression
     7           | OP expression . CP
 
-    CP   shift, and go to state 19
+    CP   shift, and go to state 18
     AND  shift, and go to state 15
     OR   shift, and go to state 16
 
 
 State 11
 
-   13 unit: NAMED TOKEN .
+   11 unit: NAMED TOKEN .
+   13     | NAMED TOKEN . AST
 
-    $default  reduce using rule 13 (unit)
+    AST  shift, and go to state 19
+
+    $default  reduce using rule 11 (unit)
 
 
 State 12
@@ -216,8 +213,7 @@ State 15
 
     expression  go to state 20
     mid_unit    go to state 7
-    low_unit    go to state 8
-    unit        go to state 9
+    unit        go to state 8
 
 
 State 16
@@ -230,29 +226,28 @@ State 16
 
     expression  go to state 21
     mid_unit    go to state 7
-    low_unit    go to state 8
-    unit        go to state 9
+    unit        go to state 8
 
 
 State 17
 
-    9 mid_unit: mid_unit low_unit .
+    9 mid_unit: mid_unit unit .
 
     $default  reduce using rule 9 (mid_unit)
 
 
 State 18
 
-   11 low_unit: unit AST .
+    7 expression: OP expression CP .
 
-    $default  reduce using rule 11 (low_unit)
+    $default  reduce using rule 7 (expression)
 
 
 State 19
 
-    7 expression: OP expression CP .
+   13 unit: NAMED TOKEN AST .
 
-    $default  reduce using rule 7 (expression)
+    $default  reduce using rule 13 (unit)
 
 
 State 20

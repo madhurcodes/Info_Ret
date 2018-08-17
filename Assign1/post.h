@@ -12,7 +12,10 @@
     #include <sstream>
     #include <fstream>
     #include <cstring>
-
+    #include <streambuf>
+    #include <cmath>
+    #include <algorithm>
+    
     using namespace std;
 
     typedef struct {

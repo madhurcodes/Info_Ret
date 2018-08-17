@@ -1,6 +1,5 @@
 #include "post.h"
 
-
 posting_query* post_union(posting_query* post_1, posting_query* post_2){
     posting_query* result = new posting_query();
     int i=0,j=0;
@@ -162,6 +161,7 @@ posting_query* post_load(query_config* config, int offset, int named){
     fclose(index);
     return result;
 }
+
 posting_query* token_to_posting_list(char* tok, query_config* config, memory_data* dat, int named){
     string word(tok);
     // do stemming and stopword
@@ -173,19 +173,61 @@ posting_query* token_to_posting_list(char* tok, query_config* config, memory_dat
     system(command.c_str());
 
     ifstream pipe("my_pipe.txt");
+    // string newword((istreambuf_iterator<char>(pipe)),
+    //              istreambuf_iterator<char>());
     stringstream read_buffer;
-    buffer << pipe.rdbuf();
-    word = read_buffer.str();
+    read_buffer << pipe.rdbuf();
+    string newword = read_buffer.str();
 
     posting_query* temp;
-    if ( dat->dictionary.find(word) == dat->dictionary.end() ) {
+    if ( dat->dictionary.find(newword) == dat->dictionary.end() ) {
         temp = new posting_query();
     }
     else{
-        int offset = dat->dictionary[word].second;
+        int offset = dat->dictionary[newword].second;
         temp = post_load(config,offset,named);
     }
     return temp;
+}
+
+posting_query* prefix_token_to_posting_list(char* tok, query_config* config, memory_data* dat, int named){
+    string word(tok);
+    // do stemming and stopword
+    
+    string command;
+    stringstream buffer;
+    buffer << "python3 process_query.py " << dat->stemming << " " << dat->stopword << " " << word;
+    command = buffer.str();
+    system(command.c_str());
+
+    ifstream pipe("my_pipe.txt");
+    // string newword((istreambuf_iterator<char>(pipe)),
+    //              istreambuf_iterator<char>());
+    stringstream read_buffer;
+    read_buffer << pipe.rdbuf();
+    string newword = read_buffer.str();
+
+    // prefix search
+    posting_query *res, *temp, *del;   
+    int offset; 
+    map<string, pair<int,int> >::iterator matched = dat->dictionary.lower_bound(newword);    
+    // map<string, pair<int,int> >::iterator matched = lower_bound(dat->dictionary.begin(),dat->dictionary.end(),newword);
+    res = new posting_query();
+    while(matched != dat->dictionary.end()){
+        if((newword.length() <= matched->first.length()) && (equal(newword.begin(),newword.end(),matched->first.begin()))){
+            offset = dat->dictionary[matched->first].second;
+            temp = post_load(config,offset,named);
+            del = res;
+            res = post_union(res,temp);
+            delete(temp);
+            delete(del);
+            matched++;
+        }
+        else{
+            break;
+        }
+    }
+    return res;
 }
 
 memory_data* load_mem_data(query_config* config){
@@ -237,6 +279,31 @@ void write_output(posting_query* q, memory_data* dat, query_config* config, FILE
         string docname = dat->doc_names[q->docs[i]->doc_id];
         fprintf(q_out, "%s %d\n",docname.c_str(),2);
     }
+}
+
+float score_doc(doc* d){
+    float s = 0;
+    int i = 0;
+    for(i==0;i<d->para_id.size();i++){
+        s += pow(2,-d->para_id[i]);
+    }
+    return s;
+}
+
+void write_output_and_scores(posting_query* q, memory_data* dat, query_config* config, FILE* q_out){
+    int i,num_docs;
+    vector<pair<float,string> > os;
+    for(i=0;i<q->docs.size();i++){
+        os.push_back(make_pair(score_doc(q->docs[i]),dat->doc_names[q->docs[i]->doc_id]));
+    }
+    sort(os.begin(), os.end(), [](const pair<float,string> &a, const pair<float,string> &b){
+        return a.first > b.first;
+    });
+    for(i=0;(i<config->cutoff) && (i<os.size());i++){
+        fprintf(q_out, "%s %f\n",os[i].second.c_str(),os[i].first);
+    }
+    // string docname = dat->doc_names[q->docs[i]->doc_id];
+    // fprintf(q_out, "%s %d\n",docname.c_str(),2);
 }
 
 void args_help(){

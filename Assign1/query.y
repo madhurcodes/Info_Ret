@@ -21,7 +21,6 @@
 
 %type<query_list> unit
 %type<query_list> mid_unit
-%type<query_list> low_unit
 %type<query_list> expression;
 %token<query> TOKEN
 %token OP CP
@@ -37,7 +36,8 @@ full:
 	| fullexpression  full {};
 
 fullexpression:  expression EOL{
-				write_output($1, dat, config, q_out);
+				// write_output($1, dat, config, q_out);
+				write_output_and_scores($1, dat, config, q_out);				
 				fputs("\n",q_out);
 				fputs("\n",q_out);
 				// cout<<"--"<<endl;				
@@ -64,18 +64,14 @@ expression: mid_unit {
 						}
 	;
 
-mid_unit: low_unit {$$ = $1;}
-	| mid_unit low_unit {
-			$$ = post_union($1,$2);
+mid_unit: unit {$$ = $1;}
+	| mid_unit unit {
+			$$ = post_intersection($1,$2);
 			// cout<<"-ORR-"<<endl;
 			delete($1);
 			delete($2);
 	};
-low_unit: unit {$$ = $1;};
-	| unit AST {
-		// change later
-		$$ = $1;
-	};
+
 unit: TOKEN {
 			$$ = token_to_posting_list($1, config, dat, 0);
 			// cout<<"-T-"<<endl;
@@ -87,7 +83,16 @@ unit: TOKEN {
 			// cout<<"-N-"<<endl;
 			free($2);
 		}
-	;
+	| TOKEN AST {
+			$$ = prefix_token_to_posting_list($1, config, dat, 0);
+			// cout<<"-T-"<<endl;
+			free($1);
+		}
+	| NAMED TOKEN AST {
+			$$ = prefix_token_to_posting_list($2, config, dat, 1);
+			// cout<<"-N-"<<endl;
+			free($2);
+		};
 
 %%
 
@@ -112,7 +117,7 @@ int main(int argc, char* argv[])
 	yyparse();
 	fclose(q_in);
 	fclose(q_out);
-	cout<<"\nClosed files"<<endl;
+	// cout<<"\nClosed files"<<endl;
 	return 0;
 
 }

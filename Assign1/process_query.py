@@ -14,10 +14,10 @@ stopword = int(sys.argv[2])
 query = sys.argv[3]
 
 with open("my_pipe.txt","w") as pipe:
+    query = query.lower()
     toky = tokenizer.tokenize(query)
     # print("\nToky is - ",toky," \n")
     tok = toky[0]
-
     if stopword:
         if tok in en_stop:
             tok = ""
