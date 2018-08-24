@@ -46,5 +46,6 @@
         int stemming = -1;
         int stopword = -1;
         vector<string> doc_names; // docids and paraids start from 1
+        vector<int> doc_lengths; // docids and paraids start from 1        
     } memory_data;
 #endif

@@ -1,5 +1,8 @@
 #include "post.h"
 
+vector<pair<int,char*> > vector_search_sol;
+vector<int > freq = vector<int>();
+
 posting_query* post_union(posting_query* post_1, posting_query* post_2){
     posting_query* result = new posting_query();
     int i=0,j=0;
@@ -182,9 +185,11 @@ posting_query* token_to_posting_list(char* tok, query_config* config, memory_dat
     posting_query* temp;
     if ( dat->dictionary.find(newword) == dat->dictionary.end() ) {
         temp = new posting_query();
+        freq.push_back(1);
     }
     else{
         int offset = dat->dictionary[newword].second;
+        freq.push_back(dat->dictionary[newword].first);
         temp = post_load(config,offset,named);
     }
     return temp;
@@ -206,6 +211,12 @@ posting_query* prefix_token_to_posting_list(char* tok, query_config* config, mem
     stringstream read_buffer;
     read_buffer << pipe.rdbuf();
     string newword = read_buffer.str();
+    if ( dat->dictionary.find(newword) == dat->dictionary.end() ) {
+        freq.push_back(1);
+    }
+    else{
+        freq.push_back(dat->dictionary[newword].first);
+    }
 
     // prefix search
     posting_query *res, *temp, *del;   
@@ -254,6 +265,7 @@ memory_data* load_mem_data(query_config* config){
     fread(&(dat->stopword),4,1,index);
     string dummy = string("");
     dat->doc_names.push_back(dummy);
+    dat->doc_lengths.push_back(-1);
     int num_docs;
     fread(&num_docs,4,1,index);
     for(i=0;i<num_docs;i++){
@@ -262,6 +274,8 @@ memory_data* load_mem_data(query_config* config){
             cout<<"ERROR";
             exit(-1);
         }
+        fread(&j,4,1,index);
+        dat->doc_lengths.push_back(j);
         fread(&size,4,1,index);
         string temp;
         temp.resize(size);
@@ -304,6 +318,71 @@ void write_output_and_scores(posting_query* q, memory_data* dat, query_config* c
     }
     // string docname = dat->doc_names[q->docs[i]->doc_id];
     // fprintf(q_out, "%s %d\n",docname.c_str(),2);
+}
+
+void vec_write_output_and_scores(memory_data* dat, query_config* config, FILE* q_out){
+    vector<pair<int,char*> > qq = vector_search_sol;
+    freq.clear();
+    vector<posting_query *> lop = vector<posting_query *>();
+    int i,j,k;
+    for(i=0;i<qq.size();i++){
+        if(qq[i].first==1){
+            lop.push_back(token_to_posting_list(qq[i].second, config, dat, 0));
+        }
+        else if(qq[i].first==2){
+            lop.push_back(token_to_posting_list(qq[i].second, config, dat, 1));
+        }
+        else if(qq[i].first==3){
+            lop.push_back(prefix_token_to_posting_list(qq[i].second, config, dat, 0));
+        }
+        else if(qq[i].first==4){
+            lop.push_back(prefix_token_to_posting_list(qq[i].second, config, dat, 1));
+        }
+        else{
+            cout<<"err";
+            exit(-1);
+        }
+    }
+    map<int,float> scores = map<int,float>();
+    for(i=0;i<lop.size();i++){
+        for(j=0;j<lop[i]->docs.size();j++){
+            int doc_id = lop[i]->docs[j]->doc_id;
+            float temp_score = 0;
+            for(k=0;k<lop[i]->docs[j]->para_id.size();k++){
+                // zone weight applied to term frequency 
+                temp_score += lop[i]->docs[j]->para_count[k]*pow(2,-(lop[i]->docs[j]->para_id[k]));
+            }
+            temp_score = log10(1+temp_score);
+            // string temp_q(qq[i].second);
+            // int df = dat->dictionary[temp_q].first;
+            int df = freq[i];
+            if(df<1){
+                df = 1;
+            }
+            // idf scaling
+            temp_score  = temp_score*log10(1+((1.0*dat->doc_names.size())/df));
+            if ( scores.find(doc_id) == scores.end() ) {
+                scores[doc_id] = temp_score;
+            }
+            else{
+                scores[doc_id] += temp_score;                
+            }
+        }
+    }
+    
+    map<int, float>::iterator it;
+    vector<pair<float,string> > os;   
+    //  norm scaling and sort by scores
+    for (it = scores.begin(); it != scores.end(); it++){
+        os.push_back(make_pair(it->second/dat->doc_lengths[it->first],dat->doc_names[it->first]));        
+    }
+    sort(os.begin(), os.end(), [](const pair<float,string> &a, const pair<float,string> &b){
+        return a.first > b.first;
+    });
+    for(i=0;(i<config->cutoff) && (i<os.size());i++){
+        fprintf(q_out, "%s %f\n",os[i].second.c_str(),os[i].first);
+    }
+    vector_search_sol.clear();
 }
 
 void args_help(){

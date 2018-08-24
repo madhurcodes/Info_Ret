@@ -9,18 +9,21 @@ string named_entity_path   = "./temp-docs-named/";
 map<string, posting_creation *> dictionary;
 
 vector<string> doc_names; // doc_ids and para_ids start from 1
+vector<int> doc_lengths; // doc_ids and para_ids start from 1
 
 void parse_document(string filename, int doc_id){
     string filepath = cleaned_folder_path + filename;
     ifstream infile(filepath);
     string line;
     int line_num = 1;
+    int words = 0;
     while (getline(infile, line))
     {
         istringstream iss(line);
         string word;
         while(iss >> word)
         {
+            words++;
             if ( dictionary.find(word) == dictionary.end() ) {
                 posting_creation* temp = new posting_creation();
                 doc* tdoc = new doc();
@@ -54,6 +57,7 @@ void parse_document(string filename, int doc_id){
 
         line_num++;
     }
+    doc_lengths.push_back(words);              
     infile.close();
 }
 
@@ -196,6 +200,8 @@ void write_files(string ind){
     for(i=0;i<doc_names.size();i++){
         wr = temp_doc_id;
         fwrite(&wr,4,1,out_index);
+        wr = doc_lengths[i];
+        fwrite(&wr,4,1,out_index);        
         wr = doc_names[i].size();
         fwrite(&wr,4,1,out_index);
         fwrite(doc_names[i].c_str(),wr,1,out_index);
@@ -276,7 +282,6 @@ int main(int argc, char **argv){
     string indexfile = argv[argc-1];
     string command;
     stringstream buffer;
-
     // Note : python stemming makes all words lowercase
     buffer << "python3 process_docs.py stemming " << stemming << " stopword " << stopword << " "<< directory <<" "<< indexfile;
     command = buffer.str();

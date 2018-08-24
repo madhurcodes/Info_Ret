@@ -119,5 +119,4 @@ int main(int argc, char* argv[])
 	fclose(q_out);
 	// cout<<"\nClosed files"<<endl;
 	return 0;
-
 }
